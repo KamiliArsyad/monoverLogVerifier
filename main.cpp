@@ -8,7 +8,7 @@
 #include <unordered_map>
 
 struct Operation {
-    int sesId;
+    long long int sesId;
     std::string opType;
     int objectId;
 };
@@ -16,7 +16,7 @@ struct Operation {
 class ElleOp
 {
 public:
-    explicit ElleOp(int objId, int transactionId) : objId(objId), transactionId(transactionId) {}
+    explicit ElleOp(int objId, long long int transactionId) : objId(objId), transactionId(transactionId) {}
     virtual ~ElleOp() = default;
 
     virtual std::string toString() = 0;
@@ -25,7 +25,7 @@ public:
 
     virtual void setToOk() = 0;
 
-    int transactionId;
+    long long int transactionId;
 protected:
     int objId;
 };
@@ -33,7 +33,7 @@ protected:
 class ReadOp final : public ElleOp
 {
 public:
-    ReadOp(int objVersion, int objId, int transactionId) : ElleOp(objId, transactionId), objVersion(objVersion) {}
+    ReadOp(int objVersion, int objId, long long int transactionId) : ElleOp(objId, transactionId), objVersion(objVersion) {}
 
     std::string toString() override
     {
@@ -76,7 +76,7 @@ private:
 class WriteOp final : public ElleOp
 {
 public:
-    WriteOp(int objVersion, int objId, int transactionId) : ElleOp(objId, transactionId), objVersion(objVersion) {}
+    WriteOp(int objVersion, int objId, long long int transactionId) : ElleOp(objId, transactionId), objVersion(objVersion) {}
 
     std::string toString() override
     {
@@ -115,8 +115,8 @@ std::vector<Operation> parseOpLog(const std::string &filename) {
 
     while (std::getline(file, line)) {
         // Remove the $$ delimiters
-        size_t start = line.find("$$");
-        size_t end = line.rfind("$$");
+        size_t start = line.find("$_$_$");
+        size_t end = line.rfind("$_$_$");
         if (start == std::string::npos || end == std::string::npos || start == end) {
             continue;
         }
@@ -146,7 +146,7 @@ std::vector<Operation> parseOpLog(const std::string &filename) {
 }
 
 // Given a transaction mapping, print out the elle-compatible log to the standard output.
-void writeToFile(const std::string &filename, const std::map<int, std::vector<std::unique_ptr<ElleOp>>> &transactions, std::map<int, std::pair<int, int>> &timing);
+void writeToFile(const std::string &filename, const std::map<long long int, std::vector<std::unique_ptr<ElleOp>>> &transactions, std::map<long long int, std::pair<int, int>> &timing);
 
 int main(int argc, char* argv[]) {
     if (argc < 2) {
@@ -156,10 +156,10 @@ int main(int argc, char* argv[]) {
 
     const std::string filename = argv[1];
     const std::vector<Operation> operations = parseOpLog(filename);
-    std::map<int, int> sessionToTxMap;
+    std::map<long long int, long long int> sessionToTxMap;
     std::map<int, int> objVersionMap;
-    std::map<int, std::vector<std::unique_ptr<ElleOp>>> transactions;
-    std::map<int, std::pair<int, int>> transactionTime;
+    std::map<long long int, std::vector<std::unique_ptr<ElleOp>>> transactions;
+    std::map<long long int, std::pair<int, int>> transactionTime;
     int currTime = 0;
 
     for (const auto &operation : operations) {
@@ -168,7 +168,7 @@ int main(int argc, char* argv[]) {
             sessionToTxMap[operation.sesId] = operation.sesId;
         }
 
-        const int tx = sessionToTxMap[operation.sesId];
+        const long long int tx = sessionToTxMap[operation.sesId];
 
         if (operation.opType == "BEGIN")
         {
@@ -208,9 +208,9 @@ int main(int argc, char* argv[]) {
 }
 
 
-void writeToFile(const std::string &filename, const std::map<int,
+void writeToFile(const std::string &filename, const std::map<long long int,
     std::vector<std::unique_ptr<ElleOp>>> &transactions,
-    std::map<int, std::pair<int, int>> &timing)
+    std::map<long long int, std::pair<int, int>> &timing)
 {
     std::ofstream file(filename);
     if (!file.is_open())
@@ -220,7 +220,7 @@ void writeToFile(const std::string &filename, const std::map<int,
     }
 
     int index = 0;
-    std::map<int, std::string> elleOut;
+    std::map<long long int, std::string> elleOut;
     for (const auto &tx : transactions)
     {
         // Write invoke type
