@@ -1,0 +1,34 @@
+$$Op: BEGIN	 Tx: 9$$
+$$Op: BEGIN	 Tx: 6$$
+$$Op: BEGIN	 Tx: 2$$
+$$Op: BEGIN	 Tx: 1$$
+$$Op: BEGIN	 Tx: 0$$
+$$Op: BEGIN	 Tx: 8$$
+$$Op: BEGIN	 Tx: 7$$
+$$Op: BEGIN	 Tx: 4$$
+$$Op: BEGIN	 Tx: 5$$
+$$Op: BEGIN	 Tx: 3$$
+$$Op: WRITE	 Tx: 6	 Obj: 2 	 wVal: $$
+$$Op: READ	 Tx: 6	 Obj: 2$$
+$$Op: COMMIT	 Tx: 6$$
+$$Op: COMMIT	 Tx: 4$$
+$$Op: COMMIT	 Tx: 2$$
+$$Op: COMMIT	 Tx: 3$$
+$$Op: COMMIT	 Tx: 1$$
+$$Op: COMMIT	 Tx: 0$$
+$$Op: WRITE	 Tx: 8	 Obj: 2 	 wVal: $$
+$$Op: READ	 Tx: 8	 Obj: 2$$
+$$Op: COMMIT	 Tx: 8$$
+$$Op: WRITE	 Tx: 9	 Obj: 2 	 wVal: $$
+$$Op: READ	 Tx: 9	 Obj: 2$$
+$$Op: COMMIT	 Tx: 9$$
+$$Op: WRITE	 Tx: 5	 Obj: 2 	 wVal: $$
+$$Op: READ	 Tx: 5	 Obj: 2$$
+$$Op: COMMIT	 Tx: 5$$
+$$Op: WRITE	 Tx: 7	 Obj: 2 	 wVal: $$
+$$Op: READ	 Tx: 7	 Obj: 2$$
+$$Op: COMMIT	 Tx: 7$$
+$$Op: READ	 Tx: 0	 Obj: 1$$
+$$Op: READ	 Tx: 0	 Obj: 1$$
+$$Op: READ	 Tx: 0	 Obj: 2$$
+$$Op: READ	 Tx: 0	 Obj: 3$$
