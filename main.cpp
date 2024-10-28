@@ -149,12 +149,13 @@ std::vector<Operation> parseOpLog(const std::string &filename) {
 void writeToFile(const std::string &filename, const std::map<long long int, std::vector<std::unique_ptr<ElleOp>>> &transactions, std::map<long long int, std::pair<int, int>> &timing);
 
 int main(int argc, char* argv[]) {
-    if (argc < 2) {
-        std::cerr << "Usage: " << argv[0] << " <input_filename>" << std::endl;
+    if (argc < 3) {
+        std::cerr << "Usage: " << argv[0] << " <input_filename> <output_file>" << std::endl;
         return 1;
     }
 
     const std::string filename = argv[1];
+    const std::string outputFile = argv[2];
     const std::vector<Operation> operations = parseOpLog(filename);
     std::map<long long int, long long int> sessionToTxMap;
     std::map<int, int> objVersionMap;
@@ -201,8 +202,7 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    const std::string testFileName = "test.edn";
-    writeToFile(testFileName, transactions, transactionTime);
+    writeToFile(outputFile, transactions, transactionTime);
 
     return 0;
 }
