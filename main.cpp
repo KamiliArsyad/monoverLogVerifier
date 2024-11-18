@@ -191,7 +191,7 @@ int main(int argc, char* argv[]) {
 
             objVersionMap[operation.objectId] += 1;
             transactions[tx].push_back(std::make_unique<WriteOp>(objVersionMap[operation.objectId], operation.objectId, tx));
-            transactionTime[tx].second = currTime; /* temporarily set the transaction commit time to the last operation */
+            transactionTime[tx].second = currTime++; /* temporarily set the transaction commit time to the last operation */
         } else if (operation.opType == "READ")
         {
             if (!objVersionMap.contains(operation.objectId))
@@ -200,7 +200,7 @@ int main(int argc, char* argv[]) {
                 objVersionMap[operation.objectId] = -1;
             }
             transactions[tx].push_back(std::make_unique<ReadOp>(objVersionMap[operation.objectId], operation.objectId, tx));
-            transactionTime[tx].second = currTime; /* temporarily set the transaction commit time to the last operation */
+            transactionTime[tx].second = currTime++; /* temporarily set the transaction commit time to the last operation */
         }
     }
 
