@@ -241,6 +241,10 @@ void writeToFile(const std::string &filename, const std::map<long long int,
         ss = std::stringstream();
 
         // Write ok type
+
+        // TODO: For now we skip the ok-s for transactions whose commit we are yet able to catch. Theoretically this
+        // should not be here and the given history should be valid.
+        if (timing[tx.first].second == -1) continue;
         ss << "{:index " << index++ << " :type :ok, :value [";
         for (const auto &op : tx.second)
         {
