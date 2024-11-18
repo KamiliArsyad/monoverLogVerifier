@@ -191,6 +191,7 @@ int main(int argc, char* argv[]) {
 
             objVersionMap[operation.objectId] += 1;
             transactions[tx].push_back(std::make_unique<WriteOp>(objVersionMap[operation.objectId], operation.objectId, tx));
+            transactionTime[tx].second = currTime; /* temporarily set the transaction commit time to the last operation */
         } else if (operation.opType == "READ")
         {
             if (!objVersionMap.contains(operation.objectId))
@@ -199,6 +200,7 @@ int main(int argc, char* argv[]) {
                 objVersionMap[operation.objectId] = -1;
             }
             transactions[tx].push_back(std::make_unique<ReadOp>(objVersionMap[operation.objectId], operation.objectId, tx));
+            transactionTime[tx].second = currTime; /* temporarily set the transaction commit time to the last operation */
         }
     }
 
@@ -242,9 +244,6 @@ void writeToFile(const std::string &filename, const std::map<long long int,
 
         // Write ok type
 
-        // TODO: For now we skip the ok-s for transactions whose commit we are yet able to catch. Theoretically this
-        // should not be here and the given history should be valid.
-        if (timing[tx.first].second == -1) continue;
         ss << "{:index " << index++ << " :type :ok, :value [";
         for (const auto &op : tx.second)
         {
