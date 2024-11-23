@@ -175,6 +175,8 @@ int main(int argc, char* argv[]) {
         {
             transactionTime[tx] = {currTime, -1};
             currTime++;
+            transactionTime[tx].second = currTime;
+            currTime++;
         }
         else if (operation.opType == "COMMIT")
         {
