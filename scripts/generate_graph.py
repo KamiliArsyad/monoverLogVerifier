@@ -40,26 +40,31 @@ def create_graph(filename: str) -> dict[set[int]]:
 
         # Process the operation
         if op == 'BEGIN':
+            if (txid - maxId) in out:
+                out[txid - maxId].add(txid)
             out[txid] = set()
         elif op == 'COMMIT':
             ses_tid_map[ses_id] += maxId
             continue
         elif op == 'WRITE':
             obj = re.search(r'Obj:\s*(\S+)', line).group(1)
-            print(obj)
 
             if obj in write_logs:
-                for preceding_xact in write_logs[obj]: out[preceding_xact].add(txid)
+                for preceding_xact in write_logs[obj]:
+                    if preceding_xact == txid: continue
+                    out[preceding_xact].add(txid)
             else:
                 write_logs[obj] = []
 
             if obj in read_logs:
-                for preceding_xact in read_logs[obj]: out[preceding_xact].add(txid)
+                for preceding_xact in read_logs[obj]:
+                    if preceding_xact == txid: continue
+                    out[preceding_xact].add(txid)
 
             write_logs[obj].append(txid)
         elif op == 'READ':
             obj = re.search(r'Obj:\s*(\S+)', line).group(1)
-            if obj in write_logs:
+            if obj in write_logs and write_logs[obj][-1] is not txid:
                 out[write_logs[obj][-1]].add(txid)
 
             if obj not in read_logs:
@@ -72,6 +77,43 @@ def create_graph(filename: str) -> dict[set[int]]:
 def findMaxId(statements):
     return reduce(lambda acc, curr: max(acc, int(re.search(r'Tx:\s*(\S+)', curr).group(1))), statements, -1)
 
+def out_vf3(graph):
+    # Assign node IDs to the nodes (IDs are from 0 to N-1)
+    nodes = list(graph.keys())
+    node_id_map = {node: idx for idx, node in enumerate(nodes)}
+    num_nodes = len(nodes)
+
+    # Start building the output
+    output_lines = []
+
+    # Add the number of nodes
+    output_lines.append("# Number of nodes")
+    output_lines.append(str(num_nodes))
+    output_lines.append("")  # Blank line for separation
+
+    # Add node attributes
+    output_lines.append("# Node attributes")
+    for node in nodes:
+        node_id = node_id_map[node]
+        output_lines.append(f"{node_id} {node}")
+    output_lines.append("")  # Blank line for separation
+
+    # Add edges for each node
+    for node in nodes:
+        node_id = node_id_map[node]
+        neighbors = graph[node]
+        output_lines.append(f"# Edges coming out of node {node_id} (initially {node})")
+        output_lines.append(str(len(neighbors)))
+        for neighbor in neighbors:
+            edge_start = node_id
+            edge_end = node_id_map[neighbor]
+            output_lines.append(f"{edge_start} {edge_end}")
+        output_lines.append("")  # Blank line for separation
+
+    # Join the lines with newline characters
+    result = "\n".join(output_lines)
+    print(result)
+
 
 if __name__ == '__main__':
     if len(sys.argv) != 2:
@@ -79,4 +121,5 @@ if __name__ == '__main__':
         sys.exit(1)
     file = sys.argv[1]
     res = create_graph(file)
-    print(res);
+    print(res)
+    out_vf3(res)
