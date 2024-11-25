@@ -145,8 +145,20 @@ std::vector<Operation> parseOpLog(const std::string &filename) {
     return transactions;
 }
 
-// Given a transaction mapping, print out the elle-compatible log to the standard output.
-void writeToFile(const std::string &filename, const std::map<long long int, std::vector<std::unique_ptr<ElleOp>>> &transactions, std::map<long long int, std::pair<int, int>> &timing);
+// Finds the max transaction id from the list of operations.
+long long int findMaxTransactionId(const std::vector<Operation> &operations);
+
+/**
+ * Given a transaction mapping, print out the elle-compatible log to the given file.
+ * @param filename The file output path to be written to
+ * @param transactions Mapping between each transaction and their respective operations.
+ * @param timing The start and end time of each transaction.
+ * @param maxId Biggest transaction id. This is used to convert back from temp transaction id to the session id.
+ */
+void writeToFile(const std::string &filename,
+                 const std::map<long long int, std::vector<std::unique_ptr<ElleOp>>> &transactions,
+                 std::map<long long int, std::pair<int, int>> &timing,
+                 const long long int maxId);
 
 int main(int argc, char* argv[]) {
     if (argc < 3) {
@@ -157,6 +169,7 @@ int main(int argc, char* argv[]) {
     const std::string filename = argv[1];
     const std::string outputFile = argv[2];
     const std::vector<Operation> operations = parseOpLog(filename);
+    const long long int maxId = findMaxTransactionId(operations);
     std::map<long long int, long long int> sessionToTxMap;
     std::map<int, int> objVersionMap;
     std::map<long long int, std::vector<std::unique_ptr<ElleOp>>> transactions;
@@ -180,7 +193,11 @@ int main(int argc, char* argv[]) {
         }
         else if (operation.opType == "COMMIT")
         {
-            sessionToTxMap[operation.sesId] += operation.sesId;
+            /* We allow the sessions in the history to have multiple transactions all labeled as `tx` for convenience.
+             * The way we process it is by assigning tx the id of `tx, tx + N, tx + 2N, tx + 3N, ...` where
+             * N is the maximum id.
+             */
+            sessionToTxMap[operation.sesId] += maxId;
             transactionTime[tx].second = currTime;
             currTime++;
         } else if (operation.opType == "WRITE")
@@ -206,7 +223,7 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    writeToFile(outputFile, transactions, transactionTime);
+    writeToFile(outputFile, transactions, transactionTime, maxId);
 
     return 0;
 }
@@ -214,7 +231,8 @@ int main(int argc, char* argv[]) {
 
 void writeToFile(const std::string &filename, const std::map<long long int,
     std::vector<std::unique_ptr<ElleOp>>> &transactions,
-    std::map<long long int, std::pair<int, int>> &timing)
+    std::map<long long int, std::pair<int, int>> &timing,
+    const long long int maxId)
 {
     std::ofstream file(filename);
     if (!file.is_open())
@@ -227,6 +245,8 @@ void writeToFile(const std::string &filename, const std::map<long long int,
     std::map<long long int, std::string> elleOut;
     for (const auto &tx : transactions)
     {
+        long long int procId = tx.first % maxId;
+
         // Write invoke type
         std::stringstream ss;
         ss << "{:index " << index++ << " :type :invoke, :value [";
@@ -237,7 +257,7 @@ void writeToFile(const std::string &filename, const std::map<long long int,
         }
 
         ss << "], "
-            << ":process " << tx.first << ", "
+            << ":process " << procId << ", "
             << ":time " << timing[tx.first].first << "}"
             << std::endl;
 
@@ -254,7 +274,7 @@ void writeToFile(const std::string &filename, const std::map<long long int,
         }
 
         ss << "], "
-            << ":process " << tx.first << ", "
+            << ":process " << procId << ", "
             << ":time " << timing[tx.first].second << "}"
             << std::endl;
 
@@ -265,4 +285,14 @@ void writeToFile(const std::string &filename, const std::map<long long int,
     {
         file << output.second;
     }
+}
+
+long long int findMaxTransactionId(const std::vector<Operation> &operations)
+{
+    long long int maxTransactionId = -1;
+    for (auto &operation : operations)
+    {
+        maxTransactionId = std::max(maxTransactionId, operation.sesId);
+    }
+    return maxTransactionId;
 }

@@ -47,7 +47,7 @@ def validate_history(filename):
 
     # After processing all lines, check if any transaction is still active
     for txid, active in active_transactions.items():
-        if False:
+        if active:
             print(f"Error: Transaction {txid} begins but does not commit")
             sys.exit(1)
     print("History is valid.")
