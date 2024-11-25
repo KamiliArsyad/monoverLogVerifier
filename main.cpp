@@ -294,5 +294,7 @@ long long int findMaxTransactionId(const std::vector<Operation> &operations)
     {
         maxTransactionId = std::max(maxTransactionId, operation.sesId);
     }
-    return maxTransactionId;
+
+    // Assumes min id is 0
+    return maxTransactionId + 1;
 }
