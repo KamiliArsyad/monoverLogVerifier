@@ -1,5 +1,6 @@
 import re
 from functools import reduce
+import pygraphviz as pgv
 
 import sys
 
@@ -77,7 +78,8 @@ def create_graph(filename: str) -> dict[set[int]]:
 def findMaxId(statements):
     return reduce(lambda acc, curr: max(acc, int(re.search(r'Tx:\s*(\S+)', curr).group(1))), statements, -1)
 
-def out_vf3(graph):
+
+def out_vf3(graph, with_comments=True):
     # Assign node IDs to the nodes (IDs are from 0 to N-1)
     nodes = list(graph.keys())
     node_id_map = {node: idx for idx, node in enumerate(nodes)}
@@ -85,41 +87,68 @@ def out_vf3(graph):
 
     # Start building the output
     output_lines = []
+    append_conditional = lambda condition, statement: condition and output_lines.append(statement)
 
     # Add the number of nodes
-    output_lines.append("# Number of nodes")
+    append_conditional(with_comments, "# Number of nodes")
     output_lines.append(str(num_nodes))
-    output_lines.append("")  # Blank line for separation
+    append_conditional(with_comments, "")
 
     # Add node attributes
-    output_lines.append("# Node attributes")
+    append_conditional(with_comments, "# Node attributes")
     for node in nodes:
         node_id = node_id_map[node]
         output_lines.append(f"{node_id} {node}")
-    output_lines.append("")  # Blank line for separation
+    append_conditional(with_comments, "")
 
     # Add edges for each node
     for node in nodes:
         node_id = node_id_map[node]
         neighbors = graph[node]
-        output_lines.append(f"# Edges coming out of node {node_id} (initially {node})")
+        append_conditional(with_comments, f"# Edges coming out of node {node_id} (initially {node})")
         output_lines.append(str(len(neighbors)))
         for neighbor in neighbors:
             edge_start = node_id
             edge_end = node_id_map[neighbor]
             output_lines.append(f"{edge_start} {edge_end}")
-        output_lines.append("")  # Blank line for separation
+        append_conditional(with_comments, "")
 
     # Join the lines with newline characters
     result = "\n".join(output_lines)
     print(result)
 
 
+def visualize_graph(adj_list, output_file):
+    """
+    Visualize a directed graph from an adjacency list and save the output as an image or other file formats.
+
+    :param adj_list: Dictionary where keys are nodes, and values are sets of adjacent nodes.
+    :param output_file: Path to the output file (e.g., 'graph.png', 'graph.pdf').
+    """
+    # Create a directed graph using PyGraphviz
+    graph = pgv.AGraph(directed=True)
+
+    # Add nodes and edges from adjacency list
+    for node, neighbors in adj_list.items():
+        graph.add_node(node, label=str(node))  # Add node with label
+        for neighbor in neighbors:
+            graph.add_edge(node, neighbor)
+
+    # Configure graph aesthetics (optional)
+    graph.graph_attr.update(dpi=300)
+    graph.node_attr.update(shape='circle', style='filled', fillcolor='lightblue')
+    graph.edge_attr.update(fontsize=10, fontname='Arial')
+
+    # Write the graph to the specified output file
+    graph.draw(output_file, prog='dot')
+
+
 if __name__ == '__main__':
-    if len(sys.argv) != 2:
-        print("Usage: python validate_history.py <filename>")
+    if len(sys.argv) < 2 or len(sys.argv) > 3:
+        print("Usage: python generate_graph.py <filename> [<output_image>]")
         sys.exit(1)
     file = sys.argv[1]
     res = create_graph(file)
-    print(res)
-    out_vf3(res)
+    if len(sys.argv) > 2:
+        visualize_graph(res, sys.argv[2])
+    out_vf3(res, False)
