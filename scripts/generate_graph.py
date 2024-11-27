@@ -1,8 +1,11 @@
 import re
 from functools import reduce
+
 import pygraphviz as pgv
+import networkx as nx
 
 import sys
+from networkx import DiGraph
 
 
 def create_graph(filename: str) -> dict[set[int]]:
@@ -27,8 +30,7 @@ def create_graph(filename: str) -> dict[set[int]]:
         match_tx = re.search(r'Tx:\s*(\S+)', line)
 
         if not match_op or not match_tx:
-            print(f"Error parsing line {line_number}: {line}")
-            sys.exit(1)
+            continue
 
         op = match_op.group(1)
         ses_id = int(match_tx.group(1))
@@ -75,8 +77,16 @@ def create_graph(filename: str) -> dict[set[int]]:
 
     return out
 
+
 def findMaxId(statements):
-    return reduce(lambda acc, curr: max(acc, int(re.search(r'Tx:\s*(\S+)', curr).group(1))), statements, -1)
+    return reduce(
+        lambda acc, curr: max(
+            acc,
+            int(match.group(1)) if (match := re.search(r'Tx:\s*(\S+)', curr)) else acc
+        ),
+        statements,
+        -1
+    )
 
 
 def out_vf3(graph, with_comments=True):
@@ -116,6 +126,17 @@ def out_vf3(graph, with_comments=True):
     # Join the lines with newline characters
     result = "\n".join(output_lines)
     print(result)
+
+
+def create_digraph_generic(adj_list: dict[set[int]]) -> DiGraph:
+    G = nx.DiGraph()
+
+    for node, neighbors in adj_list.items():
+        G.add_node(node)
+        for neighbor in neighbors:
+            G.add_edge(node, neighbor)
+
+    return G
 
 
 def visualize_graph(adj_list, output_file):
