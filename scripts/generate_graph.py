@@ -88,8 +88,47 @@ def findMaxId(statements):
         -1
     )
 
+def out_vf3(graph, with_comments=True, file_path=None):
+    """
+    Generate and output the VF3 graph representation from a given graph.
 
-def out_vf3(graph, with_comments=True):
+    This function takes a graph (in adjacency list form), processes it to
+    assign node IDs, and generates an output in VF3-compatible format. The
+    output can include comments for readability, and it can be written to
+    a specified file or printed to the console.
+
+    Parameters:
+    ----------
+    graph : dict
+        A dictionary representing the graph as an adjacency list. Keys are
+        node identifiers, and values are lists of neighboring node identifiers.
+        Example:
+            {
+                "A": ["B", "C"],
+                "B": ["C"],
+                "C": []
+            }
+    with_comments : bool, optional
+        If True, adds explanatory comments to the output for better readability
+        (default is True).
+    file_path : str or None, optional
+        If provided, the output is written to the specified file. If None,
+        the output is printed to the console (default is None).
+
+    Output Format:
+    --------------
+    The output includes:
+    1. The number of nodes in the graph.
+    2. Node attributes: Node ID and its original identifier.
+    3. Edges for each node: The number of edges and their source and target
+       node IDs.
+
+    Notes:
+    ------
+    - The function assigns node IDs sequentially from 0 to N-1 based on the
+      keys of the input dictionary.
+    - Comments are optional and can be toggled using the `with_comments` parameter.
+    """
     # Assign node IDs to the nodes (IDs are from 0 to N-1)
     nodes = list(graph.keys())
     node_id_map = {node: idx for idx, node in enumerate(nodes)}
@@ -125,7 +164,13 @@ def out_vf3(graph, with_comments=True):
 
     # Join the lines with newline characters
     result = "\n".join(output_lines)
-    print(result)
+
+    # Write to file or print to console
+    if file_path:
+        with open(file_path, "w") as file:
+            file.write(result)
+    else:
+        print(result)
 
 
 def create_digraph_generic(adj_list: dict[set[int]]) -> DiGraph:
