@@ -1,9 +1,11 @@
+import csv
 import os
 import sys
 import time
 import subprocess
 import tempfile
 import multiprocessing
+import matplotlib.pyplot as plt
 
 import vf3py
 
@@ -80,6 +82,51 @@ def are_isomorph(g1_nx, g2_nx, g1_adj_list, g2_adj_list, vf3p_bin, timeout=5):
     smaller = g1_adj_list if len(g1_adj_list) <= len(g2_adj_list) else g2_adj_list
     return are_isomorph_vf3p(smaller, bigger, vf3p_bin)
 
+def write_results_to_csv(output_dir, results):
+    output_csv = os.path.join(output_dir, 'results.csv')
+    with open(output_csv, mode='w', newline='') as csvfile:
+        writer = csv.writer(csvfile)
+        writer.writerow(['Total Count', 'Number of Isomorphic', 'Elapsed Time (s)'])
+        writer.writerows(results)
+
+def save_plot_results(results, output_dir):
+    """
+    Plots the graph processing results and saves the plot to the output directory.
+
+    Parameters:
+        results (list of tuples): Each tuple contains (total_count, number_of_isomorphic, elapsed_time).
+        output_dir (str): Directory where the plot will be saved.
+    """
+    # Extract data for plotting
+    total_count = [r[0] for r in results]
+    number_of_isomorphic = [r[1] for r in results]
+    elapsed_time = [r[2] for r in results]
+
+    plt.figure(figsize=(12, 6))
+
+    # Plot 1: Total Count vs Elapsed Time
+    plt.subplot(1, 2, 1)
+    plt.plot(total_count, elapsed_time, marker='o')
+    plt.xlabel('Total Count')
+    plt.ylabel('Elapsed Time (s)')
+    plt.title('Processing Time per Total Count')
+    plt.grid()
+
+    # Plot 2: Total Count vs Number of Isomorphic Graphs
+    plt.subplot(1, 2, 2)
+    plt.plot(total_count, number_of_isomorphic, marker='o', color='orange')
+    plt.xlabel('Total Count')
+    plt.ylabel('Number of Non-Isomorphic Graphs')
+    plt.title('Non-Isomorphic Graphs over Total Count')
+    plt.grid()
+
+    plot_path = os.path.join(output_dir, 'results_plot.png')
+    plt.tight_layout()
+    plt.savefig(plot_path, dpi=300)
+    plt.close()
+
+    print(f"Plot saved to {plot_path}")
+
 
 if __name__ == '__main__':
     if len(sys.argv) < 3:
@@ -99,8 +146,9 @@ if __name__ == '__main__':
         exit(-1)
 
     graphs = []  # List to store tuples of (NetworkX graph, adjacency list)
+    results = []
 
-    LIMIT = 1000
+    LIMIT = 10
     count = 0
     for root, dirs, files in os.walk(base_dir):
         if FILE_NAME not in files: continue
@@ -129,4 +177,10 @@ if __name__ == '__main__':
         if not seen:
             graphs.append((nx_graph, adj_list))
 
+        total_seen = count
+        cardinality_unique = len(graphs)
+        results.append((total_seen, cardinality_unique, elapsed_time))
+
+    write_results_to_csv(output_dir, results)
+    save_plot_results(results, output_dir)
     print(f"Number of non-isomorphic graphs: {len(graphs)}")
