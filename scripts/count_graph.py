@@ -29,7 +29,7 @@ def are_isomorph_vf3p(g1_adj_list, g2_adj_list, vf3p_executable=None):
         cmd = [
             VF3P_EXECUTABLE,
             '-a', '1',          # Parallel strategy version
-            '-t', '6',          # Number of threads (adjust as needed)
+            '-t', '8',          # Number of threads (adjust as needed)
             g1_file,
             g2_file
         ]
@@ -60,58 +60,73 @@ def are_isomorph_vf3p(g1_adj_list, g2_adj_list, vf3p_executable=None):
 
     return is_isomorphic
 
-def are_isomorph(g1_nx, g2_nx, g1_adj_list, g2_adj_list, vf3p_bin, timeout=10):
+def are_isomorph(g1_nx, g2_nx, g1_adj_list, g2_adj_list, vf3p_bin, timeout=5):
     # Try vf3py first with NetworkX graphs
     with multiprocessing.Pool(processes=1) as pool:
-        result = pool.apply_async(vf3py.are_isomorphic, args=(g1_nx, g2_nx))
+        bigger = g1_nx if len(g1_adj_list) > len(g2_adj_list) else g2_nx
+        smaller = g1_nx if len(g1_adj_list) <= len(g2_adj_list) else g2_nx
+        result = pool.apply_async(vf3py.has_subgraph, args=(smaller, bigger))
         try:
             is_iso = result.get(timeout=timeout)
             return is_iso
         except multiprocessing.TimeoutError:
             print(f"\nvf3py exceeded {timeout} seconds, switching to vf3p...")
+        finally:
             pool.terminate()
             pool.join()
-            # Use the adjacency lists with vf3p
-            is_iso = are_isomorph_vf3p(g1_adj_list, g2_adj_list, vf3p_bin)
-            return is_iso
+
+    # Use the adjacency lists with vf3p as a fallback
+    bigger = g1_adj_list if len(g1_adj_list) > len(g2_adj_list) else g2_adj_list
+    smaller = g1_adj_list if len(g1_adj_list) <= len(g2_adj_list) else g2_adj_list
+    return are_isomorph_vf3p(smaller, bigger, vf3p_bin)
+
 
 if __name__ == '__main__':
-    if len(sys.argv) < 2:
-        print("Usage: python count_graph.py <directory> [path/to/vf3p]")
+    if len(sys.argv) < 3:
+        print("Usage: python count_graph.py <directory> <output_directory> [path/to/vf3p_binary]")
         exit(-1)
 
     base_dir = sys.argv[1]
-    vf3p_bin = sys.argv[2] if len(sys.argv) > 2 else None
+    output_dir = sys.argv[2]
+    vf3p_bin = sys.argv[3] if len(sys.argv) > 3 else None
 
     if not os.path.isdir(base_dir):
         print(f"The provided path '{base_dir}' is not a directory.")
         exit(-1)
 
+    if not os.path.isdir(output_dir):
+        print(f"The provided path '{output_dir}' is not a directory.")
+        exit(-1)
+
     graphs = []  # List to store tuples of (NetworkX graph, adjacency list)
+
+    LIMIT = 1000
     count = 0
     for root, dirs, files in os.walk(base_dir):
-        if FILE_NAME in files:
-            count += 1
-            file_path = os.path.join(root, FILE_NAME)
-            if count > 200:
-                print(f"stop counting at {file_path}")
+        if FILE_NAME not in files: continue
+
+        count += 1
+        file_path = os.path.join(root, FILE_NAME)
+        if count > LIMIT:
+            print(f"stop counting at {file_path}")
+            break
+        adj_list = create_graph(file_path)            # Get the adjacency list
+        nx_graph = create_digraph_generic(adj_list)   # Create the NetworkX graph
+        print(f"File {count}: {file_path.split('/')[6]} ---- {nx_graph}", end=" -- ")
+        timer = time.time()
+
+        # Check for isomorphism using both representations
+        seen = False
+        for existing_nx_graph, existing_adj_list in graphs:
+            if are_isomorph(nx_graph, existing_nx_graph, adj_list, existing_adj_list, vf3p_bin):
+                print(f"Previously seen on {existing_nx_graph}", end=" -- ")
+                seen = True
                 break
-            adj_list = create_graph(file_path)            # Get the adjacency list
-            nx_graph = create_digraph_generic(adj_list)   # Create the NetworkX graph
-            print(f"File {count}: {file_path.split('/')[6]}", end=" -- ")
-            timer = time.time()
 
-            # Check for isomorphism using both representations
-            seen = False
-            for existing_nx_graph, existing_adj_list in graphs:
-                if are_isomorph(nx_graph, existing_nx_graph, adj_list, existing_adj_list, vf3p_bin):
-                    seen = True
-                    break
+        elapsed_time = time.time() - timer
+        print(f"took {elapsed_time * 1000:.2f} ms")
 
-            elapsed_time = time.time() - timer
-            print(f"took {elapsed_time * 1000:.2f} ms")
-
-            if not seen:
-                graphs.append((nx_graph, adj_list))
+        if not seen:
+            graphs.append((nx_graph, adj_list))
 
     print(f"Number of non-isomorphic graphs: {len(graphs)}")
