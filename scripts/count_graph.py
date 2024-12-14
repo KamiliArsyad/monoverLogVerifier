@@ -148,7 +148,7 @@ if __name__ == '__main__':
     graphs = []  # List to store tuples of (NetworkX graph, adjacency list)
     results = []
 
-    LIMIT = 10
+    LIMIT = 1500
     count = 0
     for root, dirs, files in os.walk(base_dir):
         if FILE_NAME not in files: continue

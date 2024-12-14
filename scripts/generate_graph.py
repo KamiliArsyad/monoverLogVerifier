@@ -15,8 +15,11 @@ def create_graph(filename: str) -> dict[set[int]]:
     write_logs = dict(list())
     out = dict(set())
 
-    with open(filename, 'r') as f:
-        contents = f.read()
+    with open(filename, 'rb') as f:  # Open in binary mode
+        raw_contents = f.read()
+
+    # Decode content while replacing invalid characters
+    contents = raw_contents.decode('utf-8', errors='replace')
 
     statements = re.split(r'\$_\$_\$\s*', contents)
     statements = [stmt.strip() for stmt in statements if stmt.strip()]
